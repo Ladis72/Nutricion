@@ -4,6 +4,7 @@
 #include <QDebug>           // Para mensajes de depuración en la consola
 #include <QTableWidgetItem> // Para manejar los elementos dentro de QTableWidget
 #include <QHeaderView>      // Para ajustar el tamaño de las columnas de la tabla
+#include <qlistwidget.h>
 
 // Constructor de la ventana principal
 MainWindow::MainWindow(QWidget *parent)
@@ -15,23 +16,22 @@ MainWindow::MainWindow(QWidget *parent)
     // Inicializa nuestro gestor de usuarios.
     // 'this' es el padre, lo que asegura que userManager se destruya cuando MainWindow se destruya.
     userManager = new UserManager(this);
-
+    connect(ui->lineEdit_searchUser, &QLineEdit::textChanged,
+            this, &MainWindow::on_lineEdit_searchUser_textChanged);
     // Configura los datos de los ComboBox (Género, Nivel de Actividad, Objetivo)
     setupComboBoxes();
 
     // Carga inicialmente todos los usuarios de la base de datos en la QTableWidget
-    loadUsersIntoTable();
+    loadUsersIntoTable("");
 
-    connect(ui->lineEdit_searchUser, &QLineEdit::textChanged,
-            this, &MainWindow::loadUsersIntoTable);
-
+    setupUsertable();
+    loadUsers();
 }
 
 // Destructor de la ventana principal
 MainWindow::~MainWindow()
 {
-    delete ui; // Libera la memoria de la interfaz de usuario
-    // userManager se borrará automáticamente porque MainWindow es su padre
+
 }
 
 // Función auxiliar para configurar las opciones de los ComboBox
@@ -57,6 +57,57 @@ void MainWindow::setupComboBoxes() {
 
     // Establecer la fecha de nacimiento por defecto a un valor razonable (ej. 1 de enero de 2000)
     ui->dateEdit_birthDate->setDate(QDate(2000, 1, 1));
+}
+
+void MainWindow::setupUsertable()
+{
+    ui->tableWidget_users->setColumnCount(4); // ID, Nombre, Apellido1, Apellido2 (o más, según lo que quieras mostrar)
+    ui->tableWidget_users->setHorizontalHeaderLabels({"ID", "Nombre", "Apellido 1", "Apellido 2"});
+    ui->tableWidget_users->horizontalHeader()->setStretchLastSection(true); // Estirar la última columna
+    ui->tableWidget_users->setEditTriggers(QAbstractItemView::NoEditTriggers); // No editable directamente
+    ui->tableWidget_users->setSelectionBehavior(QAbstractItemView::SelectRows); // Seleccionar filas completas
+    ui->tableWidget_users->setSelectionMode(QAbstractItemView::SingleSelection); // Solo una fila a la vez
+
+}
+
+void MainWindow::loadUsers()
+{
+    // Limpia todas las filas existentes en la tabla antes de cargar nuevas.
+    ui->tableWidget_users->setRowCount(0);
+
+    // Obtiene la lista completa de usuarios desde el UserManager.
+    QList<QSharedPointer<User>> users = m_userManager.getAllUsers();
+
+    // Establece el número de filas de la tabla igual a la cantidad de usuarios recuperados.
+    ui->tableWidget_users->setRowCount(users.count());
+
+    // Itera sobre cada usuario en la lista.
+    for (int i = 0; i < users.count(); ++i) {
+        QSharedPointer<User> user = users.at(i);
+        if (user) { // Asegura que el puntero no sea nulo.
+            // Columna 0: ID del usuario
+            QTableWidgetItem *idItem = new QTableWidgetItem(QString::number(user->id()));
+            // Es CRÍTICO guardar el ID del usuario en los datos del ítem (Qt::UserRole).
+            // Esto permite recuperarlo fácilmente cuando se hace clic en la fila.
+            idItem->setData(Qt::UserRole, user->id());
+            ui->tableWidget_users->setItem(i, 0, idItem);
+
+            // Columna 1: Nombre del usuario
+            ui->tableWidget_users->setItem(i, 1, new QTableWidgetItem(user->firstName()));
+
+            // Columna 2: Primer apellido del usuario
+            ui->tableWidget_users->setItem(i, 2, new QTableWidgetItem(user->lastName1()));
+
+            // Columna 3: Segundo apellido del usuario
+            ui->tableWidget_users->setItem(i, 3, new QTableWidgetItem(user->lastName2()));
+
+            // Puedes añadir más columnas y datos aquí si deseas mostrar más información
+            // de forma resumida en la tabla principal de usuarios.
+        }
+    }
+    // Ajusta automáticamente el ancho de las columnas para adaptarse al contenido.
+    ui->tableWidget_users->resizeColumnsToContents();
+    qDebug() << "Usuarios cargados en la tabla. Total:" << users.count();
 }
 
 // Slot que se activa cuando se hace clic en el botón "Añadir Usuario"
@@ -99,7 +150,7 @@ void MainWindow::on_pushButton_addUser_clicked()
         ui->comboBox_goal->setCurrentIndex(0);
 
         // 6. Actualizar la tabla de usuarios para mostrar el nuevo usuario
-        loadUsersIntoTable();
+        loadUsersIntoTable("");
     } else {
         // Error: no se pudo añadir el usuario
         QMessageBox::critical(this, "Error", "No se pudo añadir el usuario a la base de datos. Revise los logs.");
@@ -109,7 +160,7 @@ void MainWindow::on_pushButton_addUser_clicked()
 // Slot que se activa cuando se hace clic en el botón "Actualizar Lista"
 void MainWindow::on_pushButton_refreshUsers_clicked()
 {
-    loadUsersIntoTable(); // Simplemente vuelve a llamar a la función para recargar los datos
+    loadUsersIntoTable(""); // Simplemente vuelve a llamar a la función para recargar los datos
 }
 
 void MainWindow::on_pushButton_deleteUser_clicked()
@@ -142,53 +193,79 @@ void MainWindow::on_pushButton_deleteUser_clicked()
     if (userManager->deleteUser(userIdToDelete)) {
         QMessageBox::information(this, "Éxito", "Usuario con ID " + QString::number(userIdToDelete) + " eliminado correctamente.");
         // 5. Actualizar la tabla después de la eliminación
-        loadUsersIntoTable();
+        loadUsersIntoTable("");
     } else {
         QMessageBox::critical(this, "Error", "No se pudo eliminar el usuario. Revise los logs.");
     }
 }
 
+void MainWindow::on_lineEdit_searchUser_textChanged(const QString &filter)
+{
+    loadUsersIntoTable(filter);
+}
+
+void MainWindow::on_tableWidget_users_doubleClicked(const QModelIndex &index)
+{
+    if (!index.isValid()) {
+        return; // Índice no válido
+    }
+
+    // Obtener el ID del usuario de la celda de la columna 0 (donde guardamos el ID)
+    // Usamos item->data(Qt::UserRole) porque lo guardamos allí.
+    int userId = ui->tableWidget_users->item(index.row(), 0)->data(Qt::UserRole).toInt();
+
+    QSharedPointer<User> selectedUser = m_userManager.getUserById(userId);
+
+    if (selectedUser) {
+        PatientDetailsWindow *detailsWindow = new PatientDetailsWindow(selectedUser, nullptr);
+        detailsWindow->setWindowModality(Qt::WindowModal);
+        detailsWindow->setAttribute(Qt::WA_DeleteOnClose);
+        detailsWindow->show();
+        qDebug() << "Abriendo ventana de detalles para el usuario ID:" << userId;
+    } else {
+        QMessageBox::warning(this, "Error", "No se pudo cargar la información completa del usuario seleccionado.");
+        qWarning() << "Error: No se pudo obtener el usuario con ID:" << userId << "para mostrar detalles en MainWindow::on_tableWidget_users_doubleClicked.";
+    }
+}
+
 // Función auxiliar para cargar usuarios desde la base de datos y mostrarlos en QTableWidget
-void MainWindow::loadUsersIntoTable(const QString &searchTerm) {
-    QVector<User> allUsers = userManager->getAllUsers();
-    QVector<User> filteredUsers; // Obtiene todos los usuarios de la base de datos
-    if (!searchTerm.isEmpty()) {
-        QString lowerSearchTerm = searchTerm.toLower();
-        for (const User& user : allUsers) {
-            if (user.firstName().toLower().contains(lowerSearchTerm) ||
-                user.lastName1().toLower().contains(lowerSearchTerm) ||
-                user.lastName2().toLower().contains(lowerSearchTerm))
+void MainWindow::loadUsersIntoTable( const QString &filter) {
+    ui->tableWidget_users->setRowCount(0);
+
+    QList<QSharedPointer<User>> users = m_userManager.getAllUsers();
+    QList<QSharedPointer<User>> filteredUsers; // Lista para usuarios filtrados
+
+    // Aplicar el filtro si no está vacío
+    if (!filter.isEmpty()) {
+        QString lowerFilter = filter.toLower(); // Para búsqueda sin distinción de mayúsculas/minúsculas
+        for (QSharedPointer<User> user : users) {
+            if (user->firstName().toLower().contains(lowerFilter) ||
+                user->lastName1().toLower().contains(lowerFilter) ||
+                user->lastName2().toLower().contains(lowerFilter) ||
+                QString::number(user->id()).contains(lowerFilter)) // También permite buscar por ID
             {
                 filteredUsers.append(user);
             }
         }
     } else {
-        filteredUsers = allUsers;
+        filteredUsers = users; // Si no hay filtro, mostrar todos
     }
-    // 1. Configurar la QTableWidget
-    ui->tableWidget_users->setRowCount(filteredUsers.size()); // Establece el número de filas según la cantidad de usuarios
-    ui->tableWidget_users->setColumnCount(8);        // 8 columnas: ID, Nombre, Apellido 1, Apellido 2, Género, Nacimiento, Actividad, Objetivo
-    // Establece los encabezados de las columnas
-    ui->tableWidget_users->setHorizontalHeaderLabels({"ID", "Nombre", "Apellido 1", "Apellido 2", "Género", "Nacimiento", "Actividad", "Objetivo"});
-    // Oculta los encabezados verticales (números de fila)
-    ui->tableWidget_users->verticalHeader()->setVisible(false);
-    // Permite que el usuario redimensione las columnas y se ajusten al contenido
-    ui->tableWidget_users->horizontalHeader()->setSectionResizeMode(QHeaderView::ResizeToContents);
-    // Hace que la última sección se estire para llenar el espacio restante
-    ui->tableWidget_users->horizontalHeader()->setStretchLastSection(true);
 
 
-    // 2. Llenar la tabla con los datos de cada usuario
-    for (int i = 0; i < filteredUsers.size(); ++i) {
-        const User& user = filteredUsers.at(i); // Obtiene una referencia constante al usuario actual
+    ui->tableWidget_users->setRowCount(filteredUsers.count());
 
-        ui->tableWidget_users->setItem(i, 0, new QTableWidgetItem(QString::number(user.id())));
-        ui->tableWidget_users->setItem(i, 1, new QTableWidgetItem(user.firstName()));
-        ui->tableWidget_users->setItem(i, 2, new QTableWidgetItem(user.lastName1()));
-        ui->tableWidget_users->setItem(i, 3, new QTableWidgetItem(user.lastName2())); // El segundo apellido puede estar vacío
-        ui->tableWidget_users->setItem(i, 4, new QTableWidgetItem(user.gender()));
-        ui->tableWidget_users->setItem(i, 5, new QTableWidgetItem(user.birthDate().toString("yyyy-MM-dd"))); // Formatear la fecha
-        ui->tableWidget_users->setItem(i, 6, new QTableWidgetItem(user.activityLevel()));
-        ui->tableWidget_users->setItem(i, 7, new QTableWidgetItem(user.goal()));
+    for (int i = 0; i < filteredUsers.count(); ++i) {
+        QSharedPointer<User> user = filteredUsers.at(i);
+        if (user) {
+            QTableWidgetItem *idItem = new QTableWidgetItem(QString::number(user->id()));
+            idItem->setData(Qt::UserRole, user->id());
+            ui->tableWidget_users->setItem(i, 0, idItem);
+
+            ui->tableWidget_users->setItem(i, 1, new QTableWidgetItem(user->firstName()));
+            ui->tableWidget_users->setItem(i, 2, new QTableWidgetItem(user->lastName1()));
+            ui->tableWidget_users->setItem(i, 3, new QTableWidgetItem(user->lastName2()));
+        }
     }
+    ui->tableWidget_users->resizeColumnsToContents();
+    qDebug() << "Usuarios cargados en la tabla (filtrados si aplica). Total:" << filteredUsers.count();
 }

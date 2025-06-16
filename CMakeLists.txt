@@ -1,4 +1,11 @@
 cmake_minimum_required(VERSION 3.19)
+# Establece el codigo independiente de la posicion para todo el proyecto
+set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
+
+
+# ... (otras configuraciones, como add_executable)
+
+# Enlaza tus librerias de Qt
 project(Nutricion LANGUAGES CXX)
 
 find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Sql)
@@ -14,6 +21,11 @@ qt_add_executable(Nutricion
     databasemanager.h databasemanager.cpp
     user.h user.cpp
     usermanager.h usermanager.cpp
+    healtmetric.h healtmetric.cpp
+    healthmetricmanager.h healthmetricmanager.cpp
+    patientdetailswindow.h patientdetailswindow.cpp patientdetailswindow.ui
+    resources.qrc
+
 )
 
 target_link_libraries(Nutricion
@@ -37,3 +49,11 @@ qt_generate_deploy_app_script(
     NO_UNSUPPORTED_PLATFORM_ERROR
 )
 install(SCRIPT ${deploy_script})
+
+# Agrega los recursos. Revisa que la ruta a resources.qrc sea correcta.
+# Por ejemplo, si resources.qrc esta en la raiz de tu proyecto:
+qt_add_resources(${PROJECT_NAME}_RESOURCES resources.qrc)
+
+
+# Vincula los recursos compilados a tu ejecutable
+target_link_libraries(${PROJECT_NAME} PRIVATE ${${PROJECT_NAME}_RESOURCES})

@@ -3,6 +3,7 @@
 
 #include <QObject>
 #include <QVector>
+#include <QSharedPointer>
 #include "user.h" // Incluimos nuestra clase User
 
 class UserManager : public QObject {
@@ -12,8 +13,8 @@ public:
 
     // Operaciones CRUD
     bool addUser(User& user); // Añade un nuevo usuario, el ID se actualizará en el objeto 'user'
-    QVector<User> getAllUsers(); // Obtiene todos los usuarios
-    std::optional<User> getUserById(int userId); // Obtiene un usuario por su ID
+    QList<QSharedPointer<User>> getAllUsers(); // Obtiene todos los usuarios
+    QSharedPointer<User> getUserById(int userId); // Obtiene un usuario por su ID
     bool updateUser(const User& user); // Actualiza los datos de un usuario existente
     bool deleteUser(int userId); // Elimina un usuario por su ID
 

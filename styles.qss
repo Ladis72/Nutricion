@@ -1,0 +1,134 @@
+/* ==========================
+   Pastel UI - Estilo armónico
+   ========================== */
+
+/* Fondo general */
+QWidget {
+    background-color: #fff5f8;  /* Rosa claro */
+    font-family: "Segoe UI", "Arial", sans-serif;
+    font-size: 11pt;
+    color: #2e2e2e;
+}
+
+/* Labels */
+QLabel {
+    color: #4a4a4a;
+    font-weight: bold;
+}
+
+/* Entradas */
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QDateEdit {
+    background-color: #ffffff;
+    border: 1px solid #d9b9c3;
+    border-radius: 4px;
+    padding: 4px;
+    selection-background-color: #d4f4dd;
+}
+
+/* Botones */
+QPushButton {
+    background-color: #ffdab9;  /* Melocotón */
+    border: 1px solid #f0b98e;
+    border-radius: 6px;
+    padding: 6px 12px;
+    color: #5a3921;
+    font-weight: bold;
+}
+
+QPushButton:hover {
+    background-color: #ffd4a3;
+}
+
+QPushButton:pressed {
+    background-color: #ffc38d;
+}
+
+/* Tablas */
+QTableView {
+    background-color: #ffffff;
+    alternate-background-color: #fef1f4;
+    gridline-color: #e0cbd3;
+    border: 1px solid #d4a5b2;
+    selection-background-color: #c5efd6;
+    selection-color: #1d3825;
+}
+
+/* Encabezados de tabla */
+QHeaderView::section {
+    background-color: #e8e1f1;  /* Lavanda */
+    padding: 4px 6px;
+    border: 1px solid #c8bedc;
+    font-weight: bold;
+    color: #403150;
+}
+
+/* Elementos de tabla */
+QTableView::item {
+    padding: 3px;
+}
+
+/* Scrollbars */
+QScrollBar:vertical, QScrollBar:horizontal {
+    background: #f2e6ec;
+    border: none;
+    width: 10px;
+    margin: 2px;
+}
+
+QScrollBar::handle:vertical, QScrollBar::handle:horizontal {
+    background: #d6bdd5;
+    border-radius: 5px;
+}
+
+QScrollBar::add-line, QScrollBar::sub-line {
+    background: none;
+    border: none;
+}
+
+/* GroupBoxes */
+QGroupBox {
+    border: 1px solid #d2b3c2;
+    border-radius: 6px;
+    margin-top: 10px;
+}
+
+QGroupBox::title {
+    subcontrol-origin: margin;
+    subcontrol-position: top left;
+    padding: 0 6px;
+    color: #b06080;
+    font-weight: bold;
+    background-color: #fff0f5;
+}
+
+/* Separadores horizontales */
+QFrame[frameShape="4"] {
+    background-color: #e2cad2;
+    max-height: 1px;
+    min-height: 1px;
+    margin: 6px 0;
+}
+
+/* Tabs */
+QTabBar::tab {
+    background: #fceffb;
+    border: 1px solid #d6a8da;
+    padding: 6px 10px;
+    margin: 2px;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+QTabBar::tab:selected {
+    background: #ffffff;
+    font-weight: bold;
+    color: #5e4b68;
+}
+
+/* ToolTips */
+QToolTip {
+    background-color: #fff3e0;
+    color: #5a3a00;
+    border: 1px solid #e0c7a1;
+    padding: 3px;
+}

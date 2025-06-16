@@ -1,25 +1,27 @@
 #include "usermanager.h"
+#include <QDebug>
 #include <QSqlQuery>
 #include <QSqlError>
-#include <QDebug>
-#include <QVariant> // Para usar bindValue
+#include <QVariant> // Necesario para QSqlQuery::value()
 
-UserManager::UserManager(QObject *parent) : QObject(parent) {
-    // La conexión a la base de datos se asume que ya está abierta
-    // y es la conexión por defecto, manejada por DatabaseManager.
+UserManager::UserManager(QObject *parent) : QObject(parent)
+{
+    // Constructor. La conexión a la base de datos es manejada por DatabaseManager.
 }
 
-bool UserManager::addUser(User& user) {
+// Añade un nuevo usuario a la base de datos.
+// El ID del objeto 'user' se actualizará si la inserción es exitosa.
+bool UserManager::addUser(User& user)
+{
     QSqlQuery query;
-    // Adaptamos la consulta SQL a las nuevas columnas de nombre
-    query.prepare("INSERT INTO Users (first_name, last_name1, last_name2, gender, birth_date, activity_level, goal) "
+    query.prepare("INSERT INTO users (first_name, last_name1, last_name2, gender, birth_date, activity_level, goal) "
                   "VALUES (:first_name, :last_name1, :last_name2, :gender, :birth_date, :activity_level, :goal)");
 
     query.bindValue(":first_name", user.firstName());
     query.bindValue(":last_name1", user.lastName1());
-    query.bindValue(":last_name2", user.lastName2().isEmpty() ? QVariant(QVariant::String) : user.lastName2()); // Manejar NULL para segundo apellido
+    query.bindValue(":last_name2", user.lastName2());
     query.bindValue(":gender", user.gender());
-    query.bindValue(":birth_date", user.birthDate().toString("yyyy-MM-dd"));
+    query.bindValue(":birth_date", user.birthDate().toString(Qt::ISODate)); // Almacena la fecha en formato ISO
     query.bindValue(":activity_level", user.activityLevel());
     query.bindValue(":goal", user.goal());
 
@@ -28,117 +30,139 @@ bool UserManager::addUser(User& user) {
         return false;
     }
 
-    int lastId = query.lastInsertId().toInt();
-    user.setId(lastId); // Actualizamos el ID del objeto User
-
-    // También actualizamos la fecha de creación si es importante tenerla en el objeto tras la inserción
-    // QDateTime::fromString() puede necesitar el formato si no es ISO estándar perfecto del DB
-    // Para SQLite TEXT DEFAULT CURRENT_TIMESTAMP, suele ser "YYYY-MM-DD HH:MM:SS"
-    // Para DATETIME de MySQL/MariaDB, es formato "YYYY-MM-DD HH:MM:SS"
-    QSqlQuery selectQuery;
-    selectQuery.prepare("SELECT created_at FROM Users WHERE user_id = :user_id");
-    selectQuery.bindValue(":user_id", lastId);
-    if (selectQuery.exec() && selectQuery.next()) {
-        user.setCreatedAt(selectQuery.value("created_at").toDateTime());
+    // Si la inserción fue exitosa, recupera el ID autogenerado
+    if (query.lastInsertId().isValid()) {
+        user.setId(query.lastInsertId().toInt()); // Asigna el ID de vuelta al objeto User
+        qInfo() << "Usuario añadido correctamente con ID:" << user.id();
+        return true;
     }
 
-    qInfo() << "Usuario añadido con ID:" << lastId;
-    return true;
+    qCritical() << "Error: Usuario añadido, pero no se pudo recuperar el ID generado.";
+    return false;
 }
 
-QVector<User> UserManager::getAllUsers() {
-    QVector<User> users;
-    // Adaptar la consulta a las nuevas columnas
-    QSqlQuery query("SELECT user_id, first_name, last_name1, last_name2, gender, birth_date, activity_level, goal, created_at FROM Users");
+// Recupera todos los usuarios de la base de datos.
+QList<QSharedPointer<User>> UserManager::getAllUsers()
+{
+    QList<QSharedPointer<User>> users;
+    QSqlQuery query("SELECT user_id, first_name, last_name1, last_name2, gender, birth_date, activity_level, goal, created_at FROM users ORDER BY first_name ASC");
 
     if (!query.exec()) {
-        qCritical() << "Error al obtener todos los usuarios:" << query.lastError().text();
-        return users;
+        qCritical() << "Error getting all users:" << query.lastError().text();
+        return users; // Devuelve una lista vacía en caso de error
     }
 
     while (query.next()) {
-        int id = query.value("user_id").toInt();
-        QString firstName = query.value("first_name").toString();
-        QString lastName1 = query.value("last_name1").toString();
-        QString lastName2 = query.value("last_name2").toString(); // Puede ser vacía si es NULL en DB
-        QString gender = query.value("gender").toString();
-        QDate birthDate = QDate::fromString(query.value("birth_date").toString(), "yyyy-MM-dd");
-        QString activityLevel = query.value("activity_level").toString();
-        QString goal = query.value("goal").toString();
-        QDateTime createdAt = query.value("created_at").toDateTime(); // toDateTime() es bastante robusto
-
-        users.append(User(id, firstName, lastName1, lastName2, gender, birthDate, activityLevel, goal, createdAt));
+        users.append(QSharedPointer<User>::create(
+            query.value("user_id").toInt(),
+            query.value("first_name").toString(),
+            query.value("last_name1").toString(),
+            query.value("last_name2").toString(),
+            query.value("gender").toString(),
+            QDate::fromString(query.value("birth_date").toString(), Qt::ISODate),
+            query.value("activity_level").toString(),
+            query.value("goal").toString(),
+            query.value("created_at").toDateTime()
+            ));
     }
+    qInfo() << "Se recuperaron" << users.count() << "usuarios.";
     return users;
 }
 
-std::optional<User> UserManager::getUserById(int userId) {
-    QSqlQuery query;
-    // Adaptar la consulta
-    query.prepare("SELECT user_id, first_name, last_name1, last_name2, gender, birth_date, activity_level, goal, created_at FROM Users WHERE user_id = :user_id");
-    query.bindValue(":user_id", userId);
-
-    if (!query.exec()) {
-        qCritical() << "Error al obtener usuario por ID:" << query.lastError().text();
-        return std::nullopt; // Retorna un usuario inválido
-    }
-
-    if (query.next()) {
-        int id = query.value("user_id").toInt();
-        QString firstName = query.value("first_name").toString();
-        QString lastName1 = query.value("last_name1").toString();
-        QString lastName2 = query.value("last_name2").toString();
-        QString gender = query.value("gender").toString();
-        QDate birthDate = QDate::fromString(query.value("birth_date").toString(), "yyyy-MM-dd");
-        QString activityLevel = query.value("activity_level").toString();
-        QString goal = query.value("goal").toString();
-        QDateTime createdAt = query.value("created_at").toDateTime();
-
-        return User(id, firstName, lastName1, lastName2, gender, birthDate, activityLevel, goal, createdAt);
-    }
-    return std::nullopt; // No se encontró el usuario
-}
-
-bool UserManager::updateUser(const User& user) {
-    if (user.id() == -1) {
-        qWarning() << "No se puede actualizar un usuario sin ID válido.";
+// Actualiza un usuario existente en la base de datos.
+bool UserManager::updateUser(const User& user)
+{
+    if (user.id() <= 0) {
+        qWarning() << "No se puede actualizar el usuario: ID de usuario no válido.";
         return false;
     }
 
     QSqlQuery query;
-    // Adaptar la consulta
-    query.prepare("UPDATE Users SET first_name = :first_name, last_name1 = :last_name1, last_name2 = :last_name2, "
+    query.prepare("UPDATE users SET "
+                  "first_name = :first_name, last_name1 = :last_name1, last_name2 = :last_name2, "
                   "gender = :gender, birth_date = :birth_date, activity_level = :activity_level, goal = :goal "
                   "WHERE user_id = :user_id");
 
     query.bindValue(":first_name", user.firstName());
     query.bindValue(":last_name1", user.lastName1());
-    query.bindValue(":last_name2", user.lastName2().isEmpty() ? QVariant(QVariant::String) : user.lastName2());
+    query.bindValue(":last_name2", user.lastName2());
     query.bindValue(":gender", user.gender());
-    query.bindValue(":birth_date", user.birthDate().toString("yyyy-MM-dd"));
+    query.bindValue(":birth_date", user.birthDate().toString(Qt::ISODate));
     query.bindValue(":activity_level", user.activityLevel());
     query.bindValue(":goal", user.goal());
     query.bindValue(":user_id", user.id());
 
     if (!query.exec()) {
-        qCritical() << "Error al actualizar usuario:" << query.lastError().text();
+        qCritical() << "Error al actualizar usuario con ID" << user.id() << ":" << query.lastError().text();
         return false;
     }
 
-    qInfo() << "Usuario actualizado con ID:" << user.id();
-    return query.numRowsAffected() > 0;
+    if (query.numRowsAffected() == 0) {
+        qWarning() << "Usuario con ID" << user.id() << "no encontrado para actualizar.";
+        return false;
+    }
+
+    qInfo() << "Usuario con ID" << user.id() << "actualizado correctamente.";
+    return true;
 }
 
-bool UserManager::deleteUser(int userId) {
-    QSqlQuery query;
-    query.prepare("DELETE FROM Users WHERE user_id = :user_id");
-    query.bindValue(":user_id", userId);
-
-    if (!query.exec()) {
-        qCritical() << "Error al eliminar usuario:" << query.lastError().text();
+// Elimina un usuario de la base de datos por su ID.
+bool UserManager::deleteUser(int id)
+{
+    if (id <= 0) {
+        qWarning() << "No se puede eliminar el usuario: ID de usuario no válido.";
         return false;
     }
 
-    qInfo() << "Usuario eliminado con ID:" << userId;
-    return query.numRowsAffected() > 0;
+    QSqlQuery query;
+    query.prepare("DELETE FROM users WHERE user_id = :id");
+    query.bindValue(":id", id);
+
+    if (!query.exec()) {
+        qCritical() << "Error al eliminar usuario con ID" << id << ":" << query.lastError().text();
+        return false;
+    }
+
+    if (query.numRowsAffected() == 0) {
+        qWarning() << "Usuario con ID" << id << "no encontrado para eliminar.";
+        return false;
+    }
+
+    qInfo() << "Usuario con ID" << id << "eliminado correctamente.";
+    return true;
+}
+
+// Recupera un único usuario por su ID.
+// Devuelve un QSharedPointer<User> o un QSharedPointer nulo si no se encuentra o hay un error.
+QSharedPointer<User> UserManager::getUserById(int id)
+{
+    QSqlQuery query;
+    query.prepare("SELECT user_id, first_name, last_name1, last_name2, gender, birth_date, activity_level, goal, created_at "
+                  "FROM users WHERE user_id = :id");
+    query.bindValue(":id", id);
+
+    if (!query.exec()) {
+        qCritical() << "Error al obtener usuario por ID:" << query.lastError().text();
+        return QSharedPointer<User>(); // Devuelve un puntero nulo en caso de error
+    }
+
+    if (query.next()) {
+        // Crea un QSharedPointer a un nuevo objeto User usando su constructor completo
+        QSharedPointer<User> user = QSharedPointer<User>::create(
+            query.value("user_id").toInt(),
+            query.value("first_name").toString(),
+            query.value("last_name1").toString(),
+            query.value("last_name2").toString(),
+            query.value("gender").toString(),
+            QDate::fromString(query.value("birth_date").toString(), Qt::ISODate),
+            query.value("activity_level").toString(),
+            query.value("goal").toString(),
+            query.value("created_at").toDateTime()
+            );
+        qInfo() << "Usuario con ID" << id << "recuperado correctamente.";
+        return user;
+    } else {
+        qWarning() << "Usuario con ID" << id << "no encontrado en la base de datos.";
+        return QSharedPointer<User>(); // Devuelve un puntero nulo si el usuario no se encuentra
+    }
 }

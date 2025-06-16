@@ -11,7 +11,7 @@
    </rect>
   </property>
   <property name="windowTitle">
-   <string>MainWindow</string>
+   <string>Nutrición 0.99</string>
   </property>
   <widget class="QWidget" name="centralwidget">
    <layout class="QGridLayout" name="gridLayout_3">
@@ -27,7 +27,17 @@
          </widget>
         </item>
         <item row="1" column="0">
-         <widget class="QTableWidget" name="tableWidget_users"/>
+         <widget class="QTableWidget" name="tableWidget_users">
+          <property name="editTriggers">
+           <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+          </property>
+          <property name="selectionMode">
+           <enum>QAbstractItemView::SelectionMode::SingleSelection</enum>
+          </property>
+          <property name="selectionBehavior">
+           <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+          </property>
+         </widget>
         </item>
         <item row="3" column="0">
          <widget class="QPushButton" name="pushButton_deleteUser">
