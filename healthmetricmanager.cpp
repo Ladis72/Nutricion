@@ -13,8 +13,8 @@ HealthMetricManager::HealthMetricManager(QObject *parent) : QObject(parent)
 bool HealthMetricManager::addHealthMetric(const HealthMetric& metric)
 {
     QSqlQuery query;
-    query.prepare("INSERT INTO health_metrics (user_id, date, weight, height, bmi, body_fat_percentage, muscle_mass_percentage, notes) "
-                  "VALUES (:user_id, :date, :weight, :height, :bmi, :body_fat_percentage, :muscle_mass_percentage, :notes)");
+    query.prepare("INSERT INTO health_metrics (user_id, date, weight, height, bmi, body_fat_percentage, muscle_mass_percentage, created_at, notes) "
+                  "VALUES (:user_id, :date, :weight, :height, :bmi, :body_fat_percentage, :muscle_mass_percentage, :created_at, :notes)");
 
     // Vincula los valores de la métrica a los placeholders de la consulta
     query.bindValue(":user_id", metric.userId());
@@ -24,10 +24,12 @@ bool HealthMetricManager::addHealthMetric(const HealthMetric& metric)
     query.bindValue(":bmi", metric.bmi());
     query.bindValue(":body_fat_percentage", metric.bodyFatPercentage());
     query.bindValue(":muscle_mass_percentage", metric.muscleMassPercentage());
+    query.bindValue(":created_at", metric.createdAt());
     query.bindValue(":notes", metric.notes());
 
     if (!query.exec()) {
         qCritical() << "Error al añadir métrica de salud:" << query.lastError().text();
+        qDebug() << query.lastError();
         return false;
     }
 

@@ -11,6 +11,7 @@ int main(int argc, char *argv[])
 {
     // Crea una instancia de la aplicación Qt
     QApplication a(argc, argv);
+    QLocale::setDefault(QLocale::c());
 
     // --- Cargar y aplicar Qt Style Sheet (QSS) desde los recursos ---
     // La ruta ahora usa ':/' seguido del prefijo definido en .qrc y el nombre del archivo.

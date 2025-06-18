@@ -25,6 +25,7 @@ qt_add_executable(Nutricion
     healthmetricmanager.h healthmetricmanager.cpp
     patientdetailswindow.h patientdetailswindow.cpp patientdetailswindow.ui
     resources.qrc
+    addmetricdialog.h addmetricdialog.cpp addmetricdialog.ui
 
 )
 

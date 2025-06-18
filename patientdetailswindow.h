@@ -9,6 +9,7 @@
 #include "user.h" // Para recibir el objeto User
 #include "healthmetricmanager.h" // Para gestionar las métricas de salud
 #include "healtmetric.h"
+#include "addmetricdialog.h"
 
 // Declaración forward para la interfaz de usuario generada por Qt Designer
 namespace Ui {
@@ -38,6 +39,8 @@ private:
     void setupUi();
     void loadPatientData();
     void loadHealthMetrics();
+private slots:
+        void on_addMetricButton_clicked(); // Nuevo slot para el botón
 };
 
 #endif // PATIENTDETAILSWINDOW_H

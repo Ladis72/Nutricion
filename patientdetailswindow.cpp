@@ -18,7 +18,7 @@ PatientDetailsWindow::PatientDetailsWindow(QSharedPointer<User> patient, QWidget
         close(); // Cierra la ventana si no hay paciente
         return;
     }
-
+//connect(ui->addMetricButton, &QPushButton::clicked, this, &PatientDetailsWindow::on_addMetricButton_clicked);
     // Configurar y cargar los datos del paciente
     setupUi();          // Configuración inicial de la UI (columnas de tabla, etc.)
     loadPatientData();  // Carga los datos básicos del paciente
@@ -90,4 +90,51 @@ void PatientDetailsWindow::loadHealthMetrics()
         }
     }
     ui->healthMetricsTableWidget->resizeColumnsToContents(); // Ajustar el ancho de las columnas
+}
+
+void PatientDetailsWindow::on_addMetricButton_clicked()
+{
+    // 1. Crear una instancia del diálogo de entrada de métricas.
+    AddMetricDialog dialog(this);
+
+    // 2. Mostrar el diálogo y esperar a que el usuario interactúe.
+    if (dialog.exec() == QDialog::Accepted) {
+        // 3. Si el usuario hizo clic en "Aceptar", obtener los datos del diálogo.
+        QDate date = dialog.getDate();
+        double weight = dialog.getWeight();
+        double height = dialog.getHeight();
+        double bodyFat = dialog.getBodyFatPercentage();
+        double muscleMass = dialog.getMuscleMassPercentage();
+        QString notes = dialog.getNotes();
+
+        // 4. ¡Perfecto! Crear un objeto HealthMetric usando el constructor para nuevas métricas.
+        //    Aquí, BMI se inicializa a 0.0 y createdAt a una QDateTime nula por tu constructor.
+        HealthMetric newMetric(
+            m_currentPatient->id(), // ID del paciente actual
+            date,
+            weight,
+            height,
+            bodyFat,
+            muscleMass,
+            notes,
+            QDateTime::currentDateTime()
+            );
+
+        // 5. ¡Perfecto! Calcular el BMI usando el método de la propia clase HealthMetric.
+        newMetric.calculateBmi();
+
+        // 6. ¡CORRECCIÓN AQUÍ! Pasar el objeto HealthMetric directamente al manager
+        //    por referencia constante (const HealthMetric&).
+        //    El manager se encargará de copiar sus datos o almacenarlos en la DB.
+        bool success = m_healthMetricManager.addHealthMetric(newMetric); // <--- ¡CAMBIO AQUÍ!
+
+        // 7. Mostrar un mensaje de éxito o error al usuario.
+        if (success) {
+            QMessageBox::information(this, "Éxito", "Métrica de salud añadida correctamente.");
+            // 8. ¡Importante! Recargar la tabla para que la nueva métrica aparezca visible.
+            loadHealthMetrics();
+        } else {
+            QMessageBox::critical(this, "Error", "No se pudo añadir la métrica de salud. Verifique la base de datos.");
+        }
+    }
 }

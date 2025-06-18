@@ -17,11 +17,11 @@ public:
 
     // Constructor para una nueva métrica (sin ID ni created_at, la DB los generará)
     HealthMetric(int userId, const QDate& date, double weight, double height,
-                 double bodyFatPercentage, double muscleMassPercentage, const QString& notes)
+                 double bodyFatPercentage, double muscleMassPercentage, const QString& notes , const QDateTime time_at)
         : m_id(-1), m_userId(userId), m_date(date), m_weight(weight), m_height(height),
         m_bmi(0.0), // El BMI se calculará en el setter o antes de la DB
         m_bodyFatPercentage(bodyFatPercentage),
-        m_muscleMassPercentage(muscleMassPercentage), m_notes(notes), m_createdAt(QDateTime()) {}
+        m_muscleMassPercentage(muscleMassPercentage), m_notes(notes), m_createdAt(time_at) {}
 
     // Getters
     int id() const { return m_id; }
