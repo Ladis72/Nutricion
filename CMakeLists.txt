@@ -8,7 +8,7 @@ set(CMAKE_POSITION_INDEPENDENT_CODE TRUE)
 # Enlaza tus librerias de Qt
 project(Nutricion LANGUAGES CXX)
 
-find_package(Qt6 6.5 REQUIRED COMPONENTS Core Widgets Sql)
+find_package(Qt6 6.5 REQUIRED COMPONENTS Core  Gui Widgets Sql Charts)
 
 qt_standard_project_setup()
 
@@ -34,6 +34,10 @@ target_link_libraries(Nutricion
         Qt::Core
         Qt::Widgets
         Qt6::Sql
+        Qt6::Widgets
+        Qt6::Charts
+
+
 )
 
 include(GNUInstallDirs)

@@ -33,6 +33,9 @@ public:
     // Retorna true si tiene éxito, false si falla.
     bool deleteHealthMetric(int metricId);
 
+    // Obtiene una metrica por id
+    HealthMetric getHealthMetric (int metricId);
+
 private:
          // No necesitamos una conexión QSqlDatabase aquí directamente,
          // ya que trabajaremos con la conexión predeterminada que DatabaseManager ya abrió.

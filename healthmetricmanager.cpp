@@ -144,3 +144,28 @@ bool HealthMetricManager::deleteHealthMetric(int metricId)
     qInfo() << "Métrica de salud con ID" << metricId << "eliminada correctamente.";
     return true;
 }
+
+HealthMetric HealthMetricManager::getHealthMetric(int metricId)
+{
+    HealthMetric metrics;
+    QSqlQuery query;
+    query.prepare("SELECT metric_id, user_id, date, weight, height, bmi, body_fat_percentage, muscle_mass_percentage, notes, created_at " // Añadido created_at
+                  "FROM health_metrics WHERE metric_id = :metric_id ");
+    query.bindValue(":metric_id", metricId);
+    if (!query.exec()) {
+        qCritical() << "Error al devolver las metricas";
+        return metrics;
+    }
+    query.first();
+    metrics.setId(query.value("metric_id").toInt());
+    metrics.setUserId(query.value("user_id").toInt());
+    metrics.setDate(QDate::fromString(query.value("date").toString(),Qt::ISODate));
+    metrics.setWeight(query.value("weight").toDouble());
+    metrics.setHeight(query.value("height").toDouble());
+    metrics.setBmi(query.value("bmi").toDouble());
+    metrics.setBodyFatPercentage(query.value("body_fat_percentage").toDouble());
+    metrics.setMuscleMassPercentage(query.value("muscle_mass_percentage").toDouble());
+    metrics.setNotes(query.value("notes").toString());
+    metrics.setCreatedAt(query.value("created_at").toDateTime());
+    return metrics;
+}

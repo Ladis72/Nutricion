@@ -48,6 +48,55 @@ AddMetricDialog::AddMetricDialog(QWidget *parent) :
     // ui->heightSpinBox->setValue(170.0);
 }
 
+AddMetricDialog::AddMetricDialog(QDate date, double weight, double height, double bodyFat, double muscleMass, QString notes, QWidget *parent) :
+    QDialog(parent),
+    ui(new Ui::AddMetricDialog)
+{
+    ui->setupUi(this);
+
+    // Conectar botones
+    connect(ui->okButton, &QPushButton::clicked, this, &AddMetricDialog::on_okButton_clicked);
+    connect(ui->cancelButton, &QPushButton::clicked, this, &AddMetricDialog::on_cancelButton_clicked);
+    // *** Configuración de QDoubleSpinBox ***
+    // Peso (kg)
+    ui->weightSpinBox->setSuffix(" kg"); // Sufijo para la unidad
+    ui->weightSpinBox->setRange(1.0, 300.0); // Rango típico para peso
+    ui->weightSpinBox->setDecimals(2); // Dos decimales de precisión
+    ui->weightSpinBox->setSingleStep(0.1); // Incremento por defecto de 0.1
+    ui->weightSpinBox->setValue(weight);
+    qDebug() << "Hasta aquí llega";
+
+    // Altura (cm)
+    ui->heightSpinBox->setSuffix(" cm");
+    ui->heightSpinBox->setRange(50.0, 250.0); // Rango típico para altura
+    ui->heightSpinBox->setDecimals(1); // Un decimal (o 0 si prefieres solo cm enteros)
+    ui->heightSpinBox->setSingleStep(0.5);
+    ui->heightSpinBox->setValue(height);
+
+    // Grasa (%)
+    ui->bodyFatSpinBox->setSuffix(" %");
+    ui->bodyFatSpinBox->setRange(0.0, 100.0); // Porcentaje de 0 a 100
+    ui->bodyFatSpinBox->setDecimals(2);
+    ui->bodyFatSpinBox->setSingleStep(0.1);
+    ui->bodyFatSpinBox->setValue(bodyFat);
+
+    // Músculo (%)
+    ui->muscleMassSpinBox->setSuffix(" %");
+    ui->muscleMassSpinBox->setRange(0.0, 100.0); // Porcentaje de 0 a 100
+    ui->muscleMassSpinBox->setDecimals(2);
+    ui->muscleMassSpinBox->setSingleStep(0.1);
+    ui->muscleMassSpinBox->setValue(muscleMass);
+
+    // Inicializar la fecha con la fecha actual
+    ui->dateTimeEdit->setDate(date);
+    ui->dateTimeEdit->setTime(QTime::currentTime());
+
+    // Notas
+    ui->notesTextEdit->setText(notes);
+    qDebug() << "Hasta aquí llega";
+
+}
+
 AddMetricDialog::~AddMetricDialog()
 {
     delete ui;

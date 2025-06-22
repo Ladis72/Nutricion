@@ -3,6 +3,7 @@
 
 #include <QDialog>
 #include <QDate>
+
 // No necesitas QDoubleValidator si usas QDoubleSpinBox
 // #include <QDoubleSpinBox> // Normalmente no es necesario incluir aquí si ya está en ui_addmetricdialog.h
 
@@ -16,6 +17,9 @@ class AddMetricDialog : public QDialog
 
 public:
     explicit AddMetricDialog(QWidget *parent = nullptr);
+    explicit AddMetricDialog(QDate date, double weight, double height,
+                             double bodyFat, double muscleMass, QString notes,
+                             QWidget *parent = nullptr);
     ~AddMetricDialog();
 
     // Métodos para obtener los datos introducidos (sin cambios)
